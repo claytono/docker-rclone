@@ -18,4 +18,4 @@ RUN curl https://downloads.rclone.org/v1.41/rclone-v1.41-linux-amd64.zip > /tmp/
   && mv /tmp/rclone*/rclone /usr/bin \
   && rm -rf /tmp/rclone*
 
-COPY rclone-report.rb /
+COPY run-rclone.sh rclone-report.rb /

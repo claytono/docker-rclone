@@ -2,7 +2,7 @@
 
 set -o pipefail
 
-rclone "$@" 2>&1 | tee log
-
-$(dirname "$BASH_SOURCE")/rclone-report.rb log
+rclone "$@" 2>&1 \
+    | tee log \
+    | "$(dirname "$BASH_SOURCE")"/rclone-report.rb
 

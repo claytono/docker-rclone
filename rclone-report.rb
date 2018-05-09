@@ -4,7 +4,7 @@ require "chronic_duration"
 require "faraday"
 require "uri"
 
-
+$stdout.sync = true
 
 class RcloneMetrics
   INSTANCE_PATH="/metrics/job/rclone/instance"
@@ -72,3 +72,4 @@ class RcloneMetrics
 end
 
 RcloneMetrics.new.process!
+

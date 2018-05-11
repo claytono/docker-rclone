@@ -28,11 +28,15 @@ class RcloneMetrics
     end
     @instance = ENV['INSTANCE']
 
+    @uri = URI(@endpoint)
+    @uri.path = File.join(INSTANCE_PATH, @instance)
+
     @transferred = @elapsed = @bytes = 0
   end
   def process!
     ARGF.each_line do |line|
       puts line
+      line.chomp!
       if m = line.match(/Transferred:\s+(\d+)\s+$/)
         @transferred = m[1]
       end
@@ -43,12 +47,37 @@ class RcloneMetrics
 
       if m = line.match(/Elapsed time:\s+(\S+)/)
         @elapsed = ChronicDuration.parse(m[1], keep_zero: true)
-        send_metrics
+        send_transfer_metrics
+      end
+
+      if m = line.match(/^Used:\s+(\d+\.?\d*)(\D+)/)
+        used = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
+        send_metric("rclone_bytes_used", "counter", used)
+      end
+
+      if m = line.match(/^Trashed:\s+(\d+\.?\d*)(\D+)/)
+        trashed = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
+        send_metric("rclone_bytes_trashed", "counter", trashed)
       end
     end
   end
 
-  def send_metrics
+  def send_metric(name, type, value)
+    puts "Reporting below metrics to #{@uri}"
+    metric = [
+      "# TYPE #{name} #{type}",
+      "#{name} #{value}"
+    ].join("\n")
+    puts metric
+
+    conn = Faraday.new(url: @endpoint)
+    resp = conn.post(@uri.path) do |req|
+      req.body = metric + "\n"
+    end
+    puts "Response code: #{resp.status}"
+  end
+
+  def send_transfer_metrics
     metrics = [
       "# TYPE rclone_files_count counter",
       "rclone_files_count #{@transferred}",
@@ -56,20 +85,20 @@ class RcloneMetrics
       "rclone_files_bytes #{@bytes}",
       "# TYPE rclone_elapsed counter",
       "rclone_elapsed #{@elapsed}",
-    ].join("\n") + "\n"
+    ].join("\n")
 
-    uri = URI(@endpoint)
-    uri.path = File.join(INSTANCE_PATH, @instance)
-    puts "Reporting below metrics to #{uri}"
+    puts "Reporting below metrics to #{@uri}"
     puts metrics
 
     conn = Faraday.new(url: @endpoint)
-    resp = conn.post(uri.path) do |req|
-      req.body = metrics
+    resp = conn.post(@uri.path) do |req|
+      req.body = metrics + "\n"
     end
     puts "Response code: #{resp.status}"
   end
 end
+
+
 
 RcloneMetrics.new.process!
 

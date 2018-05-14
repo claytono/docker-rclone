@@ -34,6 +34,7 @@ class RcloneMetrics
     @transferred = @elapsed = @bytes = 0
   end
   def process!
+    ARGF.binmode
     ARGF.each_line do |line|
       puts line
       line.chomp!

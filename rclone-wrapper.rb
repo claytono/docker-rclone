@@ -6,7 +6,7 @@ require "uri"
 
 $stdout.sync = true
 
-class RcloneMetrics
+class RcloneMetricsWrapper
   INSTANCE_PATH="/metrics/job/rclone/instance"
   UNITS_TABLE = {
     "k" => 1024,
@@ -33,34 +33,43 @@ class RcloneMetrics
 
     @transferred = @elapsed = @bytes = 0
   end
-  def process!
-    ARGF.binmode
-    ARGF.each_line do |line|
-      puts line
-      line.chomp!
-      if m = line.match(/Transferred:\s+(\d+)\s+$/)
-        @transferred = m[1]
-      end
 
-      if m = line.match(/Transferred:\s+(\d+\.\d+) (.?)Bytes/)
-        @bytes = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
-      end
+  def process(args)
+    cmd = args.unshift('rclone')
+    puts "Running: #{cmd.join(' ')}"
+    start = Time.now
+    IO.popen(args) do |io|
+      io.binmode
+      io.each_line do |line|
+        puts line
+        line.chomp!
+        if m = line.match(/Transferred:\s+(\d+)\s+$/)
+          @transferred = m[1]
+        end
 
-      if m = line.match(/Elapsed time:\s+(\S+)/)
-        @elapsed = ChronicDuration.parse(m[1], keep_zero: true)
-        send_transfer_metrics
-      end
+        if m = line.match(/Transferred:\s+(\d+\.\d+) (.?)Bytes/)
+          @bytes = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
+        end
 
-      if m = line.match(/^Used:\s+(\d+\.?\d*)(\D+)/)
-        used = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
-        send_metric("rclone_bytes_used", "counter", used)
-      end
+        if m = line.match(/Elapsed time:\s+(\S+)/)
+          @elapsed = ChronicDuration.parse(m[1], keep_zero: true)
+          send_transfer_metrics
+        end
 
-      if m = line.match(/^Trashed:\s+(\d+\.?\d*)(\D+)/)
-        trashed = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
-        send_metric("rclone_bytes_trashed", "counter", trashed)
+        if m = line.match(/^Used:\s+(\d+\.?\d*)(\D+)/)
+          used = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
+          send_metric("rclone_bytes_used", "counter", used)
+        end
+
+        if m = line.match(/^Trashed:\s+(\d+\.?\d*)(\D+)/)
+          trashed = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
+          send_metric("rclone_bytes_trashed", "counter", trashed)
+        end
       end
     end
+    rc = $?
+    send_metric("rclone_exit_code", "gauge", rc.exitstatus)
+    send_metric("rclone_runtime", "gauge", Time.now.to_f - start.to_f)
   end
 
   def send_metric(name, type, value)
@@ -101,5 +110,5 @@ end
 
 
 
-RcloneMetrics.new.process!
+RcloneMetricsWrapper.new.process(ARGV)
 

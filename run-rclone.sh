@@ -1,8 +1,9 @@
 #!/bin/bash -eu
 
+# This only wrapper only exists for backwards compatibility and
+# rclone-wrapper.rb should be used directly for anything new.
 set -o pipefail
 
-rclone "$@" 2>&1 \
+./rclone-wrapper.rb "$@" 2>&1 \
     | tee log \
-    | "$(dirname "$BASH_SOURCE")"/rclone-report.rb
 

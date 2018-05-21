@@ -2,6 +2,7 @@
 
 require "chronic_duration"
 require "faraday"
+require "open3"
 require "uri"
 
 $stdout.sync = true
@@ -40,10 +41,9 @@ class RcloneMetricsWrapper
     cmd = args.unshift('rclone')
     puts "Running: #{cmd.join(' ')}"
     start = Time.now
-    IO.popen(args) do |io|
-      io.binmode
-      io.each_line do |line|
-        puts line
+    Open3.popen2e(args.join(' ')) do |input, output|
+      output.binmode
+      output.each_line do |line|
         line.chomp!
         if m = line.match(/Transferred:\s+(\d+)\s+$/)
           @transferred = m[1]

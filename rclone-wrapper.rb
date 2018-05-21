@@ -7,6 +7,8 @@ require "uri"
 $stdout.sync = true
 
 class RcloneMetricsWrapper
+  attr_reader :exit_code
+
   INSTANCE_PATH="/metrics/job/rclone/instance"
   UNITS_TABLE = {
     "k" => 1024,
@@ -70,6 +72,7 @@ class RcloneMetricsWrapper
     rc = $?
     send_metric("rclone_exit_code", "gauge", rc.exitstatus)
     send_metric("rclone_runtime", "gauge", Time.now.to_f - start.to_f)
+    @exit_code = rc.exitstatus
   end
 
   def send_metric(name, type, value)
@@ -110,5 +113,7 @@ end
 
 
 
-RcloneMetricsWrapper.new.process(ARGV)
+rmw = RcloneMetricsWrapper.new
+rmw.process(ARGV)
+exit(rmw.exit_code)
 

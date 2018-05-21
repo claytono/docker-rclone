@@ -41,7 +41,7 @@ class RcloneMetricsWrapper
     cmd = args.unshift('rclone')
     puts "Running: #{cmd.join(' ')}"
     start = Time.now
-    Open3.popen2e(args.join(' ')) do |input, output|
+    Open3.popen2e(args.join(' ')) do |input, output, wait_thr|
       output.binmode
       output.each_line do |line|
         line.chomp!
@@ -68,11 +68,11 @@ class RcloneMetricsWrapper
           send_metric("rclone_bytes_trashed", "counter", trashed)
         end
       end
+      rc = wait_thr.value
+      send_metric("rclone_exit_code", "gauge", rc.exitstatus)
+      send_metric("rclone_runtime", "gauge", Time.now.to_f - start.to_f)
+      @exit_code = rc.exitstatus
     end
-    rc = $?
-    send_metric("rclone_exit_code", "gauge", rc.exitstatus)
-    send_metric("rclone_runtime", "gauge", Time.now.to_f - start.to_f)
-    @exit_code = rc.exitstatus
   end
 
   def send_metric(name, type, value)

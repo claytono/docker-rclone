@@ -45,6 +45,7 @@ class RcloneMetricsWrapper
       output.binmode
       output.each_line do |line|
         line.chomp!
+        puts line
         if m = line.match(/Transferred:\s+(\d+)\s+$/)
           @transferred = m[1]
         end

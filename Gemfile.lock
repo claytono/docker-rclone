@@ -3,9 +3,9 @@ GEM
   specs:
     chronic_duration (0.10.6)
       numerizer (~> 0.1.1)
-    faraday (0.15.0)
+    faraday (1.0.1)
       multipart-post (>= 1.2, < 3)
-    multipart-post (2.0.0)
+    multipart-post (2.1.1)
     numerizer (0.1.1)
 
 PLATFORMS
@@ -16,4 +16,4 @@ DEPENDENCIES
   faraday
 
 BUNDLED WITH
-   1.16.1
+   2.1.4

@@ -46,11 +46,13 @@ class RcloneMetricsWrapper
       output.each_line do |line|
         line.chomp!
         puts line
-        if m = line.match(/Transferred:\s+(\d+)\s+$/)
+        # Match file count
+        if m = line.match(/Transferred:\s+(\d+)\s*\/\s*\d+/)
           @transferred = m[1]
         end
 
-        if m = line.match(/Transferred:\s+(\d+\.\d+) (.?)Bytes/)
+        # Match bytes count
+        if m = line.match(/Transferred:.+?(\d+\.\d+) (.?)Bytes/)
           @bytes = (m[1].to_f * UNITS_TABLE[m[2].downcase]).to_i
         end
 

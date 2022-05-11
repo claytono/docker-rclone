@@ -4,6 +4,7 @@ RUN apt-get update \
   && apt-get install -y \
        build-essential \
        curl \
+       rclone \
        ruby \
        ruby-dev \
        unzip \
@@ -12,10 +13,5 @@ RUN apt-get update \
 COPY Gemfile Gemfile.lock /
 RUN gem install bundler \
   && bundle
-
-RUN curl https://downloads.rclone.org/v1.41/rclone-v1.41-linux-amd64.zip > /tmp/rclone.zip \
-  && unzip /tmp/rclone.zip -d /tmp \
-  && mv /tmp/rclone*/rclone /usr/bin \
-  && rm -rf /tmp/rclone*
 
 COPY run-rclone.sh rclone-wrapper.rb /
